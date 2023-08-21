@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UserLoginRequest;
 use App\Http\Requests\UserRegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
@@ -19,19 +20,35 @@ class UserController extends Controller
         if (User::where("username", $data["username"])->count() == 1) {
             throw new HttpResponseException(response([
                 "errors" => [
-                     "username" => [
+                    "username" => [
                         "username already registered"
-                     ]
+                    ]
                 ]
-            ],400));
+            ], 400));
         }
 
         $user = new User($data);
-        $user->passwod = Hash::make($data["password"]);
+        $user->password = Hash::make($data["password"]);
         $user->save();
 
         return (new UserResource($user))->response()->setStatusCode(201);
     }
 
 
+    public function login(UserLoginRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $user = User::where('username', $data['username'])->first();
+
+        if (!$user ||  !Hash::check($data["password"], $user->password)) {
+            throw new HttpResponseException(response([
+                "erros" => [
+                    "message" => [
+                        "username or password wrong"
+                    ]
+                ]
+            ], 401));
+        }
+    }
 }
